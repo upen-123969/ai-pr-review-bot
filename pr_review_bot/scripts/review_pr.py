@@ -5,7 +5,10 @@ from transformers import pipeline
 # GitHub setup
 token = os.environ["GITHUB_TOKEN"]
 repo_name = os.environ["GITHUB_REPOSITORY"]
-pr_number = os.environ["GITHUB_REF"].split("/")[-1]
+pr_number = os.environ["GITHUB_REF"].split("/")[2]
+
+print(f"GITHUB_REF: {os.environ['GITHUB_REF']}")
+print(f"Captured PR number value: {pr_number}")  # Add this line
 
 g = Github(token)
 repo = g.get_repo(repo_name)
