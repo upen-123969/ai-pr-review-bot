@@ -43,7 +43,7 @@ from github import Github
 # GitHub setup
 token = os.environ["GITHUB_TOKEN"]
 repo_name = os.environ["GITHUB_REPOSITORY"]
-pr_number = os.environ["GITHUB_REF"].split("/")[-1]
+pr_number = os.environ["GITHUB_REF"].split("/")[2]
 
 g = Github(token)
 repo = g.get_repo(repo_name)
