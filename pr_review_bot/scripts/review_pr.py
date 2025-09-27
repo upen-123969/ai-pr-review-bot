@@ -36,6 +36,53 @@
 # print("Review posted to PR.")
 
 
+# import os
+# import requests
+# from github import Github
+
+# # GitHub setup
+# token = os.environ["GITHUB_TOKEN"]
+# repo_name = os.environ["GITHUB_REPOSITORY"]
+# pr_number = os.environ["GITHUB_REF"].split("/")[2]
+
+# g = Github(token)
+# repo = g.get_repo(repo_name)
+# pr = repo.get_pull(int(pr_number))
+
+# # Collect PR diff
+# diffs = []
+# for f in pr.get_files():
+#     if f.patch:
+#         diffs.append(f"File: {f.filename}\n{f.patch}")
+# diff_text = "\n".join(diffs)
+
+# # Hugging Face Inference API
+# API_URL = "https://api-inference.huggingface.co/models/facebook/bart-large-mnli"
+# headers = {"Authorization": f"Bearer {os.environ['HF_TOKEN']}"}
+
+# labels = ["style issue", "bug risk", "optimization", "good code"]
+
+# def query(payload):
+#     response = requests.post(API_URL, headers=headers, json=payload)
+#     return response.json()
+
+# analysis = query({
+#     "inputs": diff_text[:400],  # avoid too long input
+#     "parameters": {"candidate_labels": labels}
+# })
+
+# # Format results
+# feedback = []
+# if "labels" in analysis:
+#     for label, score in zip(analysis["labels"], analysis["scores"]):
+#         feedback.append(f"- {label}: {score:.2f}")
+
+# comment_body = "### 🤖 AI Review Bot Suggestions\n\n" + "\n".join(feedback)
+
+# # Post comment on PR
+# pr.create_issue_comment(comment_body)
+# print("Review posted to PR via Hugging Face API.")
+
 import os
 import requests
 from github import Github
@@ -43,7 +90,9 @@ from github import Github
 # GitHub setup
 token = os.environ["GITHUB_TOKEN"]
 repo_name = os.environ["GITHUB_REPOSITORY"]
-pr_number = os.environ["GITHUB_REF"].split("/")[2]
+pr_number = os.environ["GITHUB_REF"].split("/")[-1]
+
+print(f"GITHUB_REPO: {repo_name}, PR: {pr_number}")  # 👈 debug
 
 g = Github(token)
 repo = g.get_repo(repo_name)
@@ -56,6 +105,8 @@ for f in pr.get_files():
         diffs.append(f"File: {f.filename}\n{f.patch}")
 diff_text = "\n".join(diffs)
 
+print(f"Collected diff:\n{diff_text[:200]}...")  # 👈 debug
+
 # Hugging Face Inference API
 API_URL = "https://api-inference.huggingface.co/models/facebook/bart-large-mnli"
 headers = {"Authorization": f"Bearer {os.environ['HF_TOKEN']}"}
@@ -64,21 +115,26 @@ labels = ["style issue", "bug risk", "optimization", "good code"]
 
 def query(payload):
     response = requests.post(API_URL, headers=headers, json=payload)
+    print("HF API response status:", response.status_code)  # 👈 debug
+    print("HF API raw response:", response.text[:300])      # 👈 debug
     return response.json()
 
 analysis = query({
-    "inputs": diff_text[:400],  # avoid too long input
+    "inputs": diff_text[:400],
     "parameters": {"candidate_labels": labels}
 })
 
-# Format results
 feedback = []
 if "labels" in analysis:
     for label, score in zip(analysis["labels"], analysis["scores"]):
         feedback.append(f"- {label}: {score:.2f}")
+else:
+    feedback.append("⚠️ No labels returned from Hugging Face")
 
 comment_body = "### 🤖 AI Review Bot Suggestions\n\n" + "\n".join(feedback)
 
+print("Final comment body:\n", comment_body)  # 👈 debug
+
 # Post comment on PR
 pr.create_issue_comment(comment_body)
-print("Review posted to PR via Hugging Face API.")
+print("✅ Review posted to PR via Hugging Face API.")
